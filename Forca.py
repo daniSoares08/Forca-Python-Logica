@@ -1,131 +1,212 @@
-import pygame as pg  # Importa a biblioteca Pygame e a renomeia como 'pg' para facilitar o uso
-import random  # Importa a biblioteca random, que permite gerar números aleatórios
+import pygame as pg
+import random
 
-# Cores do jogo definidas em formato RGB (Red, Green, Blue)
-branco = (255, 255, 255)  # Branco puro
-preto = (0, 0, 0)  # Preto puro
+# Inicializa os módulos do Pygame
+pg.init()
 
-# Setup da tela do Jogo com dimensões 1000x600
-window = pg.display.set_mode((1000, 600))  # Cria a janela do jogo com largura de 1000 pixels e altura de 600 pixels
+# Definindo cores
+branco = (255, 255, 255)
+preto = (0, 0, 0)
+vermelho = (255, 0, 0)
+verde = (0, 255, 0)
 
-# Inicializando o sistema de fontes do Pygame para exibir textos
-pg.font.init()  # Inicializa as funções de fontes no Pygame
+# Configurando a janela
+window = pg.display.set_mode((1000, 600))
+pg.display.set_caption("Jogo da Forca - Lógica Matemática")
 
-# Escolhendo a fonte "Courier New" com tamanho 50 para exibir a palavra camuflada no jogo
+# Fontes para textos
 fonte = pg.font.SysFont("Courier New", 50)
-
-# Escolhendo a mesma fonte, porém com tamanho 30, para o botão "Restart"
 fonte_rb = pg.font.SysFont("Courier New", 30)
+fonte_grande = pg.font.SysFont("Courier New", 50)
 
-# Lista de palavras que podem ser sorteadas aleatoriamente no jogo da forca
-palavras = ['PARALELEPIPEDO', 'ORNITORINCO', 'APARTAMENTO', 'XICARA DE CHA']
+# Lista de palavras e dicas relacionadas à lógica matemática
+palavras_e_dicas = [
+    ('PROPOSICAO', 'Conjunto de palavras que pode ser verdadeira ou falsa, mas nunca ambas.'),
+    ('CONJUNCAO', 'Operação lógica onde ambas as proposições precisam ser verdadeiras.'),
+    ('DISJUNCAO', 'Operação lógica verdadeira quando pelo menos uma proposição é verdadeira.'),
+    ('NEGACAO', 'Operação lógica que inverte o valor da proposição.'),
+    ('IMPLICACAO', 'Se P, então Q. Relação lógica onde a verdade de P implica a verdade de Q.'),
+    ('BICONDICIONAL', 'Operação verdadeira somente se ambas as proposições têm o mesmo valor.'),
+    ('TAUTOLOGIA', 'Proposição que sempre resulta em verdadeiro.'),
+    ('CONTRADICAO', 'Proposição que sempre resulta em falso.'),
+    ('QUANTIFICADOR', 'Expressão que indica a quantidade dos elementos envolvidos, como "para todo" ou "existe".'),
+    ('PREDICADO', 'Expressão lógica que depende de uma ou mais variáveis.')
+]
 
-# Variáveis iniciais
-tentativas_de_letras = [' ', '-']  # Lista que contém as letras já tentadas, iniciando com espaço e hífen
-palavra_escolhida = ''  # Armazena a palavra sorteada, inicialmente vazia
-palavra_camuflada = ''  # Armazena a palavra camuflada (com letras ocultas), inicialmente vazia
-end_game = True  # Indica se o jogo terminou ou não, inicia como verdadeiro para sortear uma nova palavra
-chance = 0  # Contador de chances/erros do jogador
-letra = ' '  # Armazena a última letra tentada, inicialmente vazia
-click_last_status = False  # Armazena o estado anterior do clique do mouse
+# Variáveis do jogo
+tentativas_de_letras = [' ', '-']
+palavra_escolhida = ''
+palavra_camuflada = ''
+dica = ''
+end_game = True
+vidas = 6
+letra = ' '
+click_last_status = False
+jogo_ganho = False
+jogo_perdido = False
 
-# Função para desenhar a forca e partes do corpo conforme o número de erros (chance)
-def Desenho_da_Forca(window, chance):
-    # Preenche o fundo da tela com a cor branca
+# Função que desenha a forca e o boneco conforme as vidas
+def Desenho_da_Forca(window, vidas):
     pg.draw.rect(window, branco, (0, 0, 1000, 600))
-    # Desenha a base e a estrutura da forca
-    pg.draw.line(window, preto, (100, 500), (100, 100), 10)  # Linha vertical da base
-    pg.draw.line(window, preto, (50, 500), (150, 500), 10)  # Linha horizontal da base
-    pg.draw.line(window, preto, (100, 100), (300, 100), 10)  # Linha horizontal do topo
-    pg.draw.line(window, preto, (300, 100), (300, 150), 10)  # Linha vertical do topo
-    # Desenho das partes do corpo conforme o número de erros
-    if chance >= 1:  # Cabeça é desenhada se o jogador erra 1 vez ou mais
-        pg.draw.circle(window, preto, (300, 200), 50, 10)  # Desenha a cabeça
-    if chance >= 2:  # Tronco é desenhado se o jogador erra 2 vezes ou mais
-        pg.draw.line(window, preto, (300, 250), (300, 350), 10)  # Desenha o tronco
-    if chance >= 3:  # Braço direito é desenhado se o jogador erra 3 vezes ou mais
-        pg.draw.line(window, preto, (300, 260), (225, 350), 10)  # Desenha o braço direito
-    if chance >= 4:  # Braço esquerdo é desenhado se o jogador erra 4 vezes ou mais
-        pg.draw.line(window, preto, (300, 260), (375, 350), 10)  # Desenha o braço esquerdo
-    if chance >= 5:  # Perna direita é desenhada se o jogador erra 5 vezes ou mais
-        pg.draw.line(window, preto, (300, 350), (375, 450), 10)  # Desenha a perna direita
-    if chance >= 6:  # Perna esquerda é desenhada se o jogador erra 6 vezes ou mais (fim de jogo)
-        pg.draw.line(window, preto, (300, 350), (225, 450), 10)  # Desenha a perna esquerda
+    pg.draw.line(window, preto, (100, 500), (100, 100), 10)
+    pg.draw.line(window, preto, (50, 500), (150, 500), 10)
+    pg.draw.line(window, preto, (100, 100), (300, 100), 10)
+    pg.draw.line(window, preto, (300, 100), (300, 150), 10)
+    if vidas <= 5:
+        pg.draw.circle(window, preto, (300, 200), 50, 10)  # Cabeça
+    if vidas <= 4:
+        pg.draw.line(window, preto, (300, 250), (300, 350), 10)  # Corpo
+    if vidas <= 3:
+        pg.draw.line(window, preto, (300, 260), (225, 350), 10)  # Braço esquerdo
+    if vidas <= 2:
+        pg.draw.line(window, preto, (300, 260), (375, 350), 10)  # Braço direito
+    if vidas <= 1:
+        pg.draw.line(window, preto, (300, 350), (375, 450), 10)  # Perna direita
+    if vidas == 0:
+        pg.draw.line(window, preto, (300, 350), (225, 450), 10)  # Perna esquerda
 
-# Função para desenhar o botão de "Restart" na tela
+# Função que desenha o botão de reiniciar centralizado na parte inferior da tela
 def Desenho_Restart_Button(window):
-    pg.draw.rect(window, preto, (700, 100, 200, 65))  # Desenha um retângulo preto para o botão
-    texto = fonte_rb.render('Restart', 1, branco)  # Renderiza o texto "Restart" na cor branca
-    window.blit(texto, (740, 120))  # Exibe o texto na posição especificada dentro do botão
+    button_width = 200
+    button_height = 65
+    x = (1000 - button_width) // 2  # Centralizado horizontalmente
+    y = 500  # Perto da parte inferior da tela
+    pg.draw.rect(window, preto, (x, y, button_width, button_height))
+    texto = fonte_rb.render('Restart', 1, branco)
+    window.blit(texto, (x + 40, y + 15))
 
-# Função para sortear uma nova palavra quando o jogo começa ou reinicia
-def Sorteando_Palavra(palavras, palavra_escolhida, end_game):
-    if end_game == True:  # Se o jogo terminou (ou está reiniciando)
-        palavra_n = random.randint(0, len(palavras) - 1)  # Escolhe um índice aleatório da lista de palavras
-        palavra_escolhida = palavras[palavra_n]  # Seleciona a palavra correspondente ao índice sorteado
-        end_game = False  # Sinaliza que o jogo está em andamento
-        chance = 0  # Reinicia o contador de erros
-    return palavra_escolhida, end_game  # Retorna a palavra sorteada e o estado do jogo
+# Função para quebrar o texto em várias linhas
+def Quebrar_Texto(texto, fonte, largura_max):
+    palavras = texto.split(' ')
+    linhas = []
+    linha_atual = ""
 
-# Função para camuflar a palavra sorteada, ocultando as letras não adivinhadas
-def Camuflando_Palavra(palavra_escolhida, palavra_camuflada, tentativas_de_letras):
-    palavra_camuflada = palavra_escolhida  # Começa com a palavra inteira
-    for n in range(len(palavra_camuflada)):  # Percorre cada letra da palavra
-        if palavra_camuflada[n:n + 1] not in tentativas_de_letras:  # Se a letra não foi tentada ainda
-            palavra_camuflada = palavra_camuflada.replace(palavra_camuflada[n], '#')  # Substitui a letra por '#'
-    return palavra_camuflada  # Retorna a palavra camuflada
+    for palavra in palavras:
+        if fonte.size(linha_atual + palavra)[0] < largura_max:
+            linha_atual += palavra + " "
+        else:
+            linhas.append(linha_atual)
+            linha_atual = palavra + " "
+    
+    linhas.append(linha_atual)  # Adiciona a última linha
+    return linhas
 
-# Função para processar uma nova tentativa de letra
-def Tentando_uma_Letra(tentativas_de_letras, palavra_escolhida, letra, chance):
-    if letra not in tentativas_de_letras:  # Se a letra ainda não foi tentada
-        tentativas_de_letras.append(letra)  # Adiciona a letra à lista de tentativas
-    if letra not in palavra_escolhida:  # Se a letra não está na palavra
-        chance += 1  # Incrementa o contador de erros (chance)
-    elif letra in tentativas_de_letras:  # Se a letra já foi tentada, não faz nada
-        pass
-    return tentativas_de_letras, chance  # Retorna as tentativas e o número de erros
+# Função para sortear uma palavra e dica
+def Sorteando_Palavra(palavras_e_dicas, end_game, palavra_atual, dica_atual):
+    if end_game:
+        palavra_n = random.randint(0, len(palavras_e_dicas) - 1)
+        palavra_escolhida, dica = palavras_e_dicas[palavra_n]
+    else:
+        palavra_escolhida = palavra_atual
+        dica = dica_atual
+    end_game = False
+    return palavra_escolhida, dica, end_game
 
-# Função para exibir a palavra (camuflada ou completa) na tela
+# Função para camuflar a palavra
+def Camuflando_Palavra(palavra_escolhida, tentativas_de_letras):
+    palavra_camuflada = ''
+    for letra in palavra_escolhida:
+        if letra in tentativas_de_letras:
+            palavra_camuflada += letra
+        else:
+            palavra_camuflada += '#'
+    return palavra_camuflada
+
+# Função para verificar tentativa de letra
+def Tentando_uma_Letra(tentativas_de_letras, palavra_escolhida, letra, vidas):
+    if letra not in tentativas_de_letras:
+        tentativas_de_letras.append(letra)
+        if letra not in palavra_escolhida:
+            vidas -= 1
+    return tentativas_de_letras, vidas
+
+# Função para desenhar a palavra camuflada na tela
 def Palavra_do_Jogo(window, palavra_camuflada):
-    palavra = fonte.render(palavra_camuflada, 1, preto)  # Renderiza a palavra camuflada usando a fonte
-    window.blit(palavra, (200, 500))  # Exibe a palavra na tela na posição (200, 500)
+    palavra = fonte.render(palavra_camuflada, 1, preto)
+    window.blit(palavra, (200, 500))
 
-# Função para reiniciar o jogo se o botão de restart for clicado
-def Restart_do_Jogo(palavra_camuflada, end_game, chance, letra, tentativas_de_letras, click_last_status, click, x, y):
-    count = 0  # Inicializa o contador de letras adivinhadas
-    limite = len(palavra_camuflada)  # Define o limite como o comprimento da palavra
-    for n in range(len(palavra_camuflada)):  # Percorre a palavra camuflada
-        if palavra_camuflada[n] != '#':  # Conta as letras já reveladas
-            count += 1
-    if count == limite and click_last_status == False and click[0] == True:  # Se todas as letras foram reveladas e o botão foi clicado
-        if x >= 700 and x <= 900 and y >= 100 and y <= 165:  # Verifica se o clique foi na área do botão de restart
-            tentativas_de_letras = [' ', '-']  # Reseta as tentativas de letras
-            end_game = True  # Marca o fim do jogo para iniciar um novo
-            chance = 0  # Reseta o contador de chances
-            letra = ' '  # Reseta a última letra
-    return end_game, chance, tentativas_de_letras, letra  # Retorna o estado do jogo atualizado
+# Função para mostrar a dica na tela
+def Mostra_Dica(window, dica):
+    linhas_dica = Quebrar_Texto(f'Dica: {dica}', fonte_rb, 600)
+    y = 20
+    for linha in linhas_dica:
+        dica_renderizada = fonte_rb.render(linha, 1, preto)
+        window.blit(dica_renderizada, (400, y))
+        y += 40
+
+# Função para reiniciar o jogo quando o botão é pressionado
+def Restart_do_Jogo(click_last_status, click, x, y, end_game, tentativas_de_letras, vidas, jogo_ganho, jogo_perdido):
+    if click_last_status == False and click[0] == True:
+        button_width = 200
+        button_height = 65
+        button_x = (1000 - button_width) // 2
+        button_y = 500
+        if button_x <= x <= button_x + button_width and button_y <= y <= button_y + button_height:
+            tentativas_de_letras = [' ', '-']
+            end_game = True
+            vidas = 6
+            jogo_ganho = False
+            jogo_perdido = False
+    return end_game, tentativas_de_letras, vidas, jogo_ganho, jogo_perdido
+
+# Função para mostrar mensagem de vitória em destaque
+def Mensagem_Vitoria(window, palavra, dica):
+    window.fill(verde)
+    texto_vitoria = f"Parabéns! A resposta correta é '{palavra}': {dica}"
+    linhas_vitoria = Quebrar_Texto(texto_vitoria, fonte_grande, 900)
+    y = 100
+    for linha in linhas_vitoria:
+        texto_renderizado = fonte_grande.render(linha, 1, preto)
+        window.blit(texto_renderizado, (50, y))
+        y += 80
+    Desenho_Restart_Button(window)
+
+# Função para mostrar mensagem de derrota em destaque
+def Mensagem_Derrota(window, palavra, dica):
+    window.fill(vermelho)
+    texto_derrota = f"Você perdeu! A resposta correta é '{palavra}': {dica}. Estude mais!"
+    linhas_derrota = Quebrar_Texto(texto_derrota, fonte_grande, 900)
+    y = 100
+    for linha in linhas_derrota:
+        texto_renderizado = fonte_grande.render(linha, 1, preto)
+        window.blit(texto_renderizado, (50, y))
+        y += 80
+    Desenho_Restart_Button(window)
 
 # Loop principal do jogo
-while True:
-    # Verifica os eventos que estão acontecendo no jogo (teclado, mouse, etc.)
+rodando = True
+while rodando:
     for event in pg.event.get():
-        if event.type == pg.QUIT:  # Se o jogador fechar a janela do jogo
-            pg.quit()  # Encerra o Pygame
-    # Lê a posição do mouse e o status dos cliques
+        if event.type == pg.QUIT:
+            rodando = False
+        elif event.type == pg.KEYDOWN and not jogo_ganho and not jogo_perdido and vidas > 0: 
+            letra = event.unicode.upper()
+            tentativas_de_letras, vidas = Tentando_uma_Letra(tentativas_de_letras, palavra_escolhida, letra, vidas)
+
     x, y = pg.mouse.get_pos()
     click = pg.mouse.get_pressed()
-    # Desenho da forca e botão de restart
-    Desenho_da_Forca(window, chance)
-    Desenho_Restart_Button(window)
-    # Sorteia uma nova palavra se o jogo começou/reiniciou
-    palavra_escolhida, end_game = Sorteando_Palavra(palavras, palavra_escolhida, end_game)
-    # Atualiza a palavra camuflada conforme as tentativas
-    palavra_camuflada = Camuflando_Palavra(palavra_escolhida, palavra_camuflada, tentativas_de_letras)
-    # Exibe a palavra camuflada na tela
-    Palavra_do_Jogo(window, palavra_camuflada)
-    # Reinicia o jogo se o botão de restart for clicado
-    end_game, chance, tentativas_de_letras, letra = Restart_do_Jogo(palavra_camuflada, end_game, chance, letra, tentativas_de_letras, click_last_status, click, x, y)
-    # Atualiza o status do último clique do mouse
+
+    palavra_escolhida, dica, end_game = Sorteando_Palavra(palavras_e_dicas, end_game, palavra_escolhida, dica)
+    palavra_camuflada = Camuflando_Palavra(palavra_escolhida, tentativas_de_letras)
+
+    if '#' not in palavra_camuflada:
+        jogo_ganho = True
+
+    if vidas == 0:
+        jogo_perdido = True
+
+    if jogo_ganho:
+        Mensagem_Vitoria(window, palavra_escolhida, dica)
+    elif jogo_perdido:
+        Mensagem_Derrota(window, palavra_escolhida, dica)
+    else:
+        Desenho_da_Forca(window, vidas)
+        Palavra_do_Jogo(window, palavra_camuflada)
+        Mostra_Dica(window, dica)
+
+    end_game, tentativas_de_letras, vidas, jogo_ganho, jogo_perdido = Restart_do_Jogo(click_last_status, click, x, y, end_game, tentativas_de_letras, vidas, jogo_ganho, jogo_perdido)
+
     click_last_status = click[0]
-    # Atualiza a tela do jogo
     pg.display.update()
+
+pg.quit()
